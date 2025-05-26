@@ -16,19 +16,22 @@ export default function LoginPage() {
   }
 
   function handleSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    login(form)
-      .then((res) => {
-        setUser(res.data);
-        navigate("/hoje");
-      })
-      .catch(() => {
-        alert("Erro ao fazer login! Verifique seus dados.");
-        setLoading(false);
-      });
-  }
+  login(form)
+    .then((res) => {
+      localStorage.setItem("token", res.data.token); // <- ESSA LINHA É ESSENCIAL
+      localStorage.setItem("user", JSON.stringify(res.data)); // opcional
+      setUser(res.data);
+      navigate("/hoje");
+    })
+    .catch(() => {
+      alert("Erro ao fazer login! Verifique seus dados.");
+      setLoading(false);
+    });
+}
+
 
   return (
     <Container>

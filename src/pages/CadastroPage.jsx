@@ -1,29 +1,37 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { signUp } from "../services/authService";
 import styled from "styled-components";
 
+function CadastroPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [image, setImage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
-function CadastroPage(){
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [name, setName] = useState("");
-    const [image, setImage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
-    const navigate = useNavigate();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try{
-            await signUp({ email, password, name, image});
-            navigate("/")
-        }catch (error){
-            setErrorMessage("Erro ao cadastrar. Verifique os dados e tente novamente.");
-            console.error("Erro ao cadastrar:", error.response?.data || error.message);
-        }
-};
+    const body = {
+      email,
+      name,
+      image,
+      password,
+    };
 
-return (
+    try {
+      await signUp(body);
+      navigate("/login"); // redireciona para login após cadastro bem-sucedido
+    } catch (error) {
+      const msg = error.response?.data?.message || "Erro ao cadastrar.";
+      setErrorMessage(msg);
+      console.error("Erro ao cadastrar:", error);
+    }
+  };
+
+  return (
     <PageContainer>
       <FormContainer>
         <Logo>TrackIt</Logo>
@@ -33,35 +41,41 @@ return (
             placeholder="Nome"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            required
           />
           <Input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <Input
             type="password"
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
           <Input
-            type="text"
-            placeholder="Imagem (URL)"
+            type="url"
+            placeholder="URL da imagem"
             value={image}
             onChange={(e) => setImage(e.target.value)}
+            required
           />
           <SubmitButton type="submit">Cadastrar</SubmitButton>
           {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
-          <LoginLink>Já tem uma conta? Faça login!</LoginLink>
+          <LoginLink to="/login">Já tem uma conta? Faça login!</LoginLink>
         </form>
       </FormContainer>
     </PageContainer>
   );
 }
 
+export default CadastroPage;
 
+// Styled Components
 const PageContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -120,12 +134,13 @@ const SubmitButton = styled.button`
   }
 `;
 
-const LoginLink = styled.p`
+const LoginLink = styled(Link)`
+  display: block;
   text-align: center;
   margin-top: 15px;
   color: #1e90ff;
   font-size: 0.9rem;
-  cursor: pointer;
+  text-decoration: none;
 
   &:hover {
     text-decoration: underline;
@@ -137,6 +152,3 @@ const ErrorMessage = styled.p`
   margin-top: 20px;
   text-align: center;
 `;
-
-
-export default CadastroPage;
