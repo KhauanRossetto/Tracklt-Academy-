@@ -1,12 +1,36 @@
-# React + Vite
+# 📘 TrackIt Academy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**TrackIt Academy** é uma aplicação web para **acompanhamento de hábitos diários**, permitindo que usuários registrem, visualizem e marquem hábitos como concluídos. Desenvolvido com React e Vite, o projeto faz consumo de uma API para autenticação, cadastro e controle dos hábitos.
 
-Currently, two official plugins are available:
+## 🔗 Link de Deploy
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Acesse o projeto funcionando aqui: [TrackIt Academy - Deploy](https://trackit-academy.vercel.app)
 
-## Expanding the ESLint configuration
+## ✨ Funcionalidades
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Cadastro e login de usuário
+- Criação de hábitos diários
+- Marcação de hábitos concluídos
+- Visualização dos hábitos do dia atual
+- Histórico de hábitos
+
+## 🚀 Tecnologias Utilizadas
+
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [Axios](https://axios-http.com/)
+- [Styled Components](https://styled-components.com/)
+- Context API
+
+## 📂 Estrutura de Pastas
+
+```bash
+├── public/              # Arquivos estáticos
+├── src/
+│   ├── assets/          # Ícones e imagens
+│   ├── components/      # Componentes reutilizáveis (Menu, Topo etc)
+│   ├── contexts/        # Contexto de autenticação
+│   ├── pages/           # Páginas principais (Login, Cadastro, Hoje, etc)
+│   ├── services/        # Comunicação com API (auth, hábitos)
+│   ├── App.jsx          # Componente principal
+│   └── main.jsx         # Ponto de entrada da aplicação

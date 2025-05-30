@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styled from "styled-components";
 
-// Componentes estilizados (mantidos iguais para copiar o design)
+// Styled Components (mesmos de antes, só adicionei botão extra para excluir e confirmar)
+
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -74,6 +75,8 @@ const NavigationBar = styled.nav`
   justify-content: space-around;
   padding: 10px 0;
   border-top: 1px solid #e5e5e5;
+  position: sticky;
+  bottom: 0;
 `;
 
 const NavButton = styled.button`
@@ -179,33 +182,79 @@ const ButtonCancel = styled.button`
   }
 `;
 
+const HabitItem = styled.li`
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: ${props => props.done ? "#d3f9d8" : "white"};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid ${props => props.done ? "#34a853" : "#ccc"};
+`;
+
+const HabitInfo = styled.div`
+  flex: 1;
+`;
+
+const HabitButtons = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ConfirmButton = styled.button`
+  background-color: #34a853;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    background-color: #2c8c46;
+  }
+`;
+
+const DeleteButton = styled.button`
+  background-color: #d32f2f;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    background-color: #b12727;
+  }
+`;
+
 function HabitosPage() {
-  const [habits, setHabits] = useState([]); // Estado dos hábitos
-  const [isLoading, setIsLoading] = useState(false); // Para mostrar carregamento
-  const [formVisible, setFormVisible] = useState(false); // Para mostrar/ocultar formulário
-  const [habitName, setHabitName] = useState(""); // Nome do hábito
-  const [selectedDays, setSelectedDays] = useState([]); // Dias selecionados para o hábito
-  const [error, setError] = useState(""); // Erro ao criar
+  const [habits, setHabits] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [habitName, setHabitName] = useState("");
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [error, setError] = useState("");
+  const [filterToday, setFilterToday] = useState(false);
+  const [doneHabits, setDoneHabits] = useState([]); // IDs dos hábitos marcados como feitos
+
   const navigate = useNavigate();
 
-  // Obter e validar o token (simplificado, sem jwtDecode)
+  const daysNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const todayIndex = new Date().getDay();
+
   const getValidToken = () => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login"); // Redireciona para login se não houver token
-      throw new Error("Nenhum token encontrado. Faça login novamente.");
-    }
-    // Verificação básica do formato do token (exemplo: contém um ponto, típico de JWTs)
-    if (!token.includes(".")) {
-      console.error("Token inválido ou malformado:", token);
+    if (!token || !token.includes(".")) {
       localStorage.removeItem("token");
       navigate("/login");
-      throw new Error("Token inválido. Faça login novamente.");
+      throw new Error("Token inválido ou ausente. Faça login novamente.");
     }
     return token;
   };
 
-  // Carregar hábitos do usuário ao montar a página
   useEffect(() => {
     loadHabits();
   }, []);
@@ -214,13 +263,19 @@ function HabitosPage() {
     setIsLoading(true);
     try {
       const token = getValidToken();
-      const response = await axios.get("https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setHabits(response.data);
+      setError("");
+      setDoneHabits([]); // limpa feitos ao recarregar
     } catch (error) {
+      if (error.message.includes("Token inválido")) {
+        return;
+      }
       console.error("Erro ao carregar hábitos:", error.response?.data || error.message);
       setError("Erro ao carregar hábitos. Tente novamente ou faça login novamente.");
     } finally {
@@ -228,30 +283,40 @@ function HabitosPage() {
     }
   };
 
-  // Lógica para criar um novo hábito com mais depuração
   const postHabit = async (habitData) => {
     try {
       const token = getValidToken();
-      console.log("Enviando requisição POST com dados:", habitData); // Depuração
-      console.log("Token usado:", token); // Depuração
       const response = await axios.post(
         "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits",
         habitData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("Resposta da API ao criar hábito:", response.data); // Depuração
       return response.data;
     } catch (error) {
-      console.error("Erro ao criar hábito:", error.response?.data || error.message);
       throw new Error("Erro ao criar hábito: " + (error.response?.data?.message || error.message));
     }
   };
 
-  // Lógica para envio do novo hábito
+  const deleteHabit = async (id) => {
+    try {
+      const token = getValidToken();
+      await axios.delete(
+        `https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // Remove da lista localmente após exclusão
+      setHabits((prev) => prev.filter(habit => habit.id !== id));
+      setDoneHabits((prev) => prev.filter(did => did !== id));
+    } catch (error) {
+      console.error("Erro ao excluir hábito:", error.response?.data || error.message);
+      setError("Erro ao excluir hábito.");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -263,59 +328,90 @@ function HabitosPage() {
     }
 
     if (selectedDays.length === 0) {
-      setError("Selecione pelo menos um dia para o hábito.");
+      setError("Selecione pelo menos um dia.");
       setIsLoading(false);
       return;
     }
 
     const habitData = {
       name: habitName.trim(),
-      days: selectedDays.sort((a, b) => a - b), // Ordenar para facilitar a leitura
+      days: selectedDays.sort((a, b) => a - b),
     };
 
     try {
       const newHabit = await postHabit(habitData);
-      setHabits([...habits, newHabit]); // Atualiza o estado imediatamente
+      setHabits([...habits, newHabit]);
       setHabitName("");
       setSelectedDays([]);
       setFormVisible(false);
-      setError(""); // Limpa qualquer erro anterior
-      await loadHabits(); // Recarrega todos os hábitos para garantir consistência
+      setError("");
+      await loadHabits();
     } catch (error) {
-      setError("Erro ao cadastrar hábito. Verifique o token, os dados ou tente novamente.");
-      console.error("Erro ao criar hábito:", error.message);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Função para alternar a seleção de dias
   const toggleDay = (day) => {
-    if (selectedDays.includes(day)) {
-      setSelectedDays(selectedDays.filter((d) => d !== day));
-    } else {
-      setSelectedDays([...selectedDays, day]);
-    }
+    setSelectedDays((prevDays) =>
+      prevDays.includes(day)
+        ? prevDays.filter((d) => d !== day)
+        : [...prevDays, day]
+    );
   };
 
-  // Exibir os hábitos do usuário
+  const toggleDone = (id) => {
+    setDoneHabits((prevDone) =>
+      prevDone.includes(id)
+        ? prevDone.filter(did => did !== id)
+        : [...prevDone, id]
+    );
+  };
+
+  const filteredHabits = filterToday
+    ? habits.filter(habit => habit.days.includes(todayIndex))
+    : habits;
+
   const renderHabits = () => {
     if (isLoading) {
       return <HabitsMessage>Carregando hábitos...</HabitsMessage>;
     }
-    if (habits.length === 0) {
+    if (filteredHabits.length === 0) {
       return (
         <HabitsMessage>
-          Você não tem nenhum hábito cadastrado ainda. Adicione um hábito para começar a trackear!
+          {filterToday
+            ? "Você não tem hábitos para hoje."
+            : "Você não tem nenhum hábito cadastrado ainda."}
         </HabitsMessage>
       );
     }
     return (
-      <ul>
-        {habits.map((habit) => (
-          <li key={habit.id}>
-            {habit.name} - Dias: {habit.days.join(", ")}
-          </li>
+      <ul style={{ listStyle: "none", padding: 0, width: "100%", maxWidth: 600 }}>
+        {filteredHabits.map((habit) => (
+          <HabitItem key={habit.id} done={doneHabits.includes(habit.id)}>
+            <HabitInfo>
+              <strong>{habit.name}</strong> <br />
+              Dias: {habit.days.map(d => daysNames[d]).join(", ")}
+            </HabitInfo>
+            <HabitButtons>
+              <ConfirmButton
+                onClick={() => toggleDone(habit.id)}
+                title={doneHabits.includes(habit.id) ? "Desmarcar feito" : "Marcar como feito"}
+              >
+                {doneHabits.includes(habit.id) ? "✔ Feito" : "Confirmar"}
+              </ConfirmButton>
+              <DeleteButton
+                onClick={() => {
+                  if(window.confirm(`Deseja realmente excluir o hábito "${habit.name}"?`)){
+                    deleteHabit(habit.id);
+                  }
+                }}
+              >
+                Excluir
+              </DeleteButton>
+            </HabitButtons>
+          </HabitItem>
         ))}
       </ul>
     );
@@ -325,7 +421,7 @@ function HabitosPage() {
     <PageContainer>
       <Header>
         <Logo>TrackIt</Logo>
-        <ProfileIcon src="/path-to-spongebob-icon.png" alt="Perfil" /> {/* Substitua pelo caminho real da imagem */}
+        <ProfileIcon src="/path-to-spongebob-icon.png" alt="Perfil" />
       </Header>
       <MainContent>
         <h2>Meus Hábitos</h2>
@@ -333,7 +429,6 @@ function HabitosPage() {
           +
         </AddHabitButton>
 
-        {/* Formulário de criação de hábito */}
         {formVisible && (
           <form onSubmit={handleSubmit}>
             <Input
@@ -345,12 +440,13 @@ function HabitosPage() {
               required
             />
             <div>
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day, index) => (
+              {daysNames.map((day, index) => (
                 <DayButton
                   key={index}
-                  onClick={() => toggleDay(index + 1)}
+                  onClick={() => toggleDay(index)}
                   disabled={isLoading}
-                  selected={selectedDays.includes(index + 1)}
+                  selected={selectedDays.includes(index)}
+                  type="button"
                 >
                   {day}
                 </DayButton>
@@ -364,12 +460,11 @@ function HabitosPage() {
           </form>
         )}
 
-        {/* Renderiza a lista de hábitos */}
         {renderHabits()}
       </MainContent>
       <NavigationBar>
-        <NavButton active>Hábitos</NavButton>
-        <NavButton>Hoje</NavButton>
+        <NavButton active={!filterToday} onClick={() => setFilterToday(false)}>Hábitos</NavButton>
+        <NavButton active={filterToday} onClick={() => setFilterToday(true)}>Hoje</NavButton>
       </NavigationBar>
     </PageContainer>
   );
