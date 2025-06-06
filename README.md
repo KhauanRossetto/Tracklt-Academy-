@@ -6,6 +6,8 @@
 
 Acesse o projeto funcionando aqui: [TrackIt Academy - Deploy](https://trackit-academy.vercel.app)
 
+https://tracklt-academy-git-main-khauan-da-silva-rossettos-projects.vercel.app/ 
+
 ## ✨ Funcionalidades
 
 - Cadastro e login de usuário
