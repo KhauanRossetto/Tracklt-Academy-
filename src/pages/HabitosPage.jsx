@@ -180,24 +180,21 @@ const ButtonCancel = styled.button`
 `;
 
 function HabitosPage() {
-  const [habits, setHabits] = useState([]); // Estado dos hábitos
-  const [isLoading, setIsLoading] = useState(false); // Para mostrar carregamento
-  const [formVisible, setFormVisible] = useState(false); // Para mostrar/ocultar formulário
-  const [habitName, setHabitName] = useState(""); // Nome do hábito
-  const [selectedDays, setSelectedDays] = useState([]); // Dias selecionados para o hábito
-  const [error, setError] = useState(""); // Erro ao criar
+  const [habits, setHabits] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [habitName, setHabitName] = useState("");
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Obter e validar o token (simplificado, sem jwtDecode)
   const getValidToken = () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      navigate("/login"); // Redireciona para login se não houver token
+      navigate("/login");
       throw new Error("Nenhum token encontrado. Faça login novamente.");
     }
-    // Aqui, removemos a validação de expiração, assumindo que o token é válido
-    // Se necessário, você pode adicionar uma lógica simples para verificar o formato do token
-    if (!token.startsWith("Bearer ") && !token.includes(".")) { // Verifica formato básico
+    if (!token.startsWith("Bearer ") && !token.includes(".")) {
       console.error("Token inválido ou malformado:", token);
       localStorage.removeItem("token");
       navigate("/login");
@@ -206,7 +203,6 @@ function HabitosPage() {
     return token;
   };
 
-  // Carregar hábitos do usuário ao montar a página
   useEffect(() => {
     loadHabits();
   }, []);
@@ -216,9 +212,7 @@ function HabitosPage() {
     try {
       const token = getValidToken();
       const response = await axios.get("https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setHabits(response.data);
     } catch (error) {
@@ -229,22 +223,16 @@ function HabitosPage() {
     }
   };
 
-  // Lógica para criar um novo hábito com mais depuração
   const postHabit = async (habitData) => {
     try {
       const token = getValidToken();
-      console.log("Enviando requisição POST com dados:", habitData); // Depuração
-      console.log("Token usado:", token); // Depuração
       const response = await axios.post(
         "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits",
         habitData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("Resposta da API ao criar hábito:", response.data); // Depuração
       return response.data;
     } catch (error) {
       console.error("Erro ao criar hábito:", error.response?.data || error.message);
@@ -252,7 +240,6 @@ function HabitosPage() {
     }
   };
 
-  // Lógica para envio do novo hábito
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -271,17 +258,17 @@ function HabitosPage() {
 
     const habitData = {
       name: habitName.trim(),
-      days: selectedDays.sort((a, b) => a - b), // Ordenar para facilitar a leitura
+      days: selectedDays.sort((a, b) => a - b),
     };
 
     try {
       const newHabit = await postHabit(habitData);
-      setHabits([...habits, newHabit]); // Atualiza o estado imediatamente
+      setHabits([...habits, newHabit]);
       setHabitName("");
       setSelectedDays([]);
       setFormVisible(false);
-      setError(""); // Limpa qualquer erro anterior
-      await loadHabits(); // Recarrega todos os hábitos para garantir consistência
+      setError("");
+      await loadHabits();
     } catch (error) {
       setError("Erro ao cadastrar hábito. Verifique o token, os dados ou tente novamente.");
       console.error("Erro ao criar hábito:", error.message);
@@ -290,7 +277,6 @@ function HabitosPage() {
     }
   };
 
-  // Função para alternar a seleção de dias
   const toggleDay = (day) => {
     if (selectedDays.includes(day)) {
       setSelectedDays(selectedDays.filter((d) => d !== day));
@@ -299,7 +285,6 @@ function HabitosPage() {
     }
   };
 
-  // Exibir os hábitos do usuário
   const renderHabits = () => {
     if (isLoading) {
       return <HabitsMessage>Carregando hábitos...</HabitsMessage>;
@@ -312,10 +297,14 @@ function HabitosPage() {
       );
     }
     return (
-      <ul>
+      <ul style={{ listStyle: "none", padding: 0, width: "100%", maxWidth: 600 }}>
         {habits.map((habit) => (
-          <li key={habit.id}>
-            {habit.name} - Dias: {habit.days.join(", ")}
+          <li key={habit.id} style={{ background: "#fff", padding: "16px", borderRadius: "8px", marginBottom: "12px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)" }}>
+            <div style={{ fontWeight: "bold", fontSize: "1.1rem", marginBottom: "6px" }}>{habit.name}</div>
+            <div style={{ color: "#666666", fontSize: "0.9rem", lineHeight: "1.4" }}>
+              Sequência atual: <span style={{ color: habit.currentSequence > 0 ? "#8FC549" : "#666666" }}>{habit.currentSequence} {habit.currentSequence === 1 ? "dia" : "dias"}</span><br />
+              Seu recorde: <span style={{ color: habit.currentSequence === habit.highestSequence && habit.currentSequence !== 0 ? "#8FC549" : "#666666" }}>{habit.highestSequence} {habit.highestSequence === 1 ? "dia" : "dias"}</span>
+            </div>
           </li>
         ))}
       </ul>
@@ -326,17 +315,14 @@ function HabitosPage() {
     <PageContainer>
       <Header>
         <Logo>TrackIt</Logo>
-        <ProfileIcon src="/path-to-spongebob-icon.png" alt="Perfil" /> {/* Substitua pelo caminho real da imagem */}
+        <ProfileIcon src="/path-to-spongebob-icon.png" alt="Perfil" />
       </Header>
       <MainContent>
         <h2>Meus Hábitos</h2>
-        <AddHabitButton onClick={() => setFormVisible(true)} disabled={isLoading}>
-          +
-        </AddHabitButton>
+        <AddHabitButton onClick={() => setFormVisible(true)} disabled={isLoading}>+</AddHabitButton>
 
-        {/* Formulário de criação de hábito */}
         {formVisible && (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 600 }}>
             <Input
               type="text"
               placeholder="Nome do hábito"
@@ -349,9 +335,9 @@ function HabitosPage() {
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day, index) => (
                 <DayButton
                   key={index}
-                  onClick={() => toggleDay(index + 1)}
+                  onClick={() => toggleDay(index)}
                   disabled={isLoading}
-                  selected={selectedDays.includes(index + 1)}
+                  selected={selectedDays.includes(index)}
                 >
                   {day}
                 </DayButton>
@@ -365,7 +351,6 @@ function HabitosPage() {
           </form>
         )}
 
-        {/* Renderiza a lista de hábitos */}
         {renderHabits()}
       </MainContent>
       <NavigationBar>
