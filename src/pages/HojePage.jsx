@@ -203,6 +203,7 @@ const HabitInfo = styled.div`
 const HabitButtons = styled.div`
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 `;
 
 const ConfirmButton = styled.button`
@@ -241,6 +242,38 @@ const DeleteButton = styled.button`
   }
 `;
 
+// Container dos botões de filtro (aba Hoje / Meus Hábitos)
+const FilterButtons = styled.div`
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+`;
+
+// Botão individual de filtro
+const FilterButton = styled.button`
+  padding: 8px 16px;
+  background-color: ${({ active }) => (active ? "#126BA5" : "#E7E7E7")};
+  color: ${({ active }) => (active ? "white" : "#126BA5")};
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: ${({ active }) => (active ? "#0f5a8d" : "#dcdcdc")};
+  }
+`;
+
+const Footer = styled.footer`
+  width: 100%;
+  height: 60px;
+  background-color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
 function HabitosPage() {
   const [habits, setHabits] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -250,6 +283,10 @@ function HabitosPage() {
   const [error, setError] = useState("");
   const [filterToday, setFilterToday] = useState(false);
   const [doneHabits, setDoneHabits] = useState([]);
+
+  // --- NOVO estado para hábitos de hoje com histórico e recorde ---
+  const [todayHabits, setTodayHabits] = useState([]);
+  const [loadingToday, setLoadingToday] = useState(false);
 
   const navigate = useNavigate();
   const daysNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -267,7 +304,8 @@ function HabitosPage() {
 
   useEffect(() => {
     loadHabits();
-  }, []);
+    if(filterToday) loadTodayHabits();  // carrega hábitos do dia ao entrar na aba Hoje
+  }, [filterToday]);
 
   const loadHabits = async () => {
     setIsLoading(true);
@@ -289,192 +327,238 @@ function HabitosPage() {
     }
   };
 
-  const postHabit = async (habitData) => {
+  // --- NOVO: carrega hábitos de hoje com histórico ---
+  const loadTodayHabits = async () => {
+    setLoadingToday(true);
     try {
       const token = getValidToken();
-      const response = await axios.post(
-        "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits",
-        habitData,
+      const res = await axios.get(
+        "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits/today",
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      return response.data;
+      // Assumimos que o backend retorna os hábitos hoje com os campos adicionais:
+      // habit.weeklyRecord e habit.history (dias feitos na semana)
+      setTodayHabits(res.data);
+      setError("");
+      // Atualiza lista dos hábitos feitos hoje (id)
+      const doneIds = res.data.filter(h => h.done).map(h => h.id);
+      setDoneHabits(doneIds);
     } catch (error) {
-      throw new Error("Erro ao criar hábito: " + (error.response?.data?.message || error.message));
+      if (error.message.includes("Token inválido")) return;
+      console.error("Erro ao carregar hábitos de hoje:", error.response?.data || error.message);
+      setError("Erro ao carregar hábitos de hoje.");
+    } finally {
+      setLoadingToday(false);
     }
   };
 
-  const deleteHabit = async (id) => {
+  const toggleTodayHabit = async habit => {
+    const token = getValidToken();
+    const url = `https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits/${habit.id}/${
+      habit.done ? "uncheck" : "check"
+    }`;
     try {
-      const token = getValidToken();
+      await axios.post(url, null, { headers: { Authorization: `Bearer ${token}` } });
+      // Atualiza lista de hábitos hoje após toggle
+      loadTodayHabits();
+    } catch (error) {
+      alert("Erro ao atualizar status do hábito.");
+      console.error(error);
+    }
+  };
+
+  const deleteHabit = async id => {
+    const token = getValidToken();
+    try {
       await axios.delete(
         `https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setHabits((prev) => prev.filter(habit => habit.id !== id));
-      setDoneHabits((prev) => prev.filter(did => did !== id));
+      // Recarregar lista após exclusão
+      if(filterToday) {
+        loadTodayHabits();
+      } else {
+        loadHabits();
+      }
     } catch (error) {
-      console.error("Erro ao excluir hábito:", error.response?.data || error.message);
-      setError("Erro ao excluir hábito.");
+      alert("Erro ao excluir hábito.");
+      console.error(error);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleDayClick = dayIndex => {
+    if (selectedDays.includes(dayIndex)) {
+      setSelectedDays(selectedDays.filter(d => d !== dayIndex));
+    } else {
+      setSelectedDays([...selectedDays, dayIndex]);
+    }
+  };
+
+  const createHabit = async e => {
     e.preventDefault();
-    setIsLoading(true);
-    if (!habitName.trim()) {
-      setError("O nome do hábito não pode estar vazio.");
-      setIsLoading(false);
+    if (habitName.trim() === "") {
+      setError("O nome do hábito não pode ficar vazio.");
       return;
     }
     if (selectedDays.length === 0) {
-      setError("Selecione pelo menos um dia.");
-      setIsLoading(false);
+      setError("Selecione pelo menos um dia da semana.");
       return;
     }
-
-    const habitData = { name: habitName.trim(), days: selectedDays.sort((a, b) => a - b) };
-
+    setIsLoading(true);
+    const token = getValidToken();
     try {
-      const newHabit = await postHabit(habitData);
-      setHabits([...habits, newHabit]);
+      await axios.post(
+        "https://mock-api.bootcamp.respondeai.com.br/api/v2/trackit/habits",
+        {
+          name: habitName,
+          days: selectedDays.sort(),
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setHabitName("");
       setSelectedDays([]);
-      setFormVisible(false);
       setError("");
-      await loadHabits();
+      setFormVisible(false);
+      loadHabits();
     } catch (error) {
-      setError(error.message);
+      alert("Erro ao criar hábito.");
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleDay = (day) => {
-    setSelectedDays((prevDays) =>
-      prevDays.includes(day)
-        ? prevDays.filter((d) => d !== day)
-        : [...prevDays, day]
-    );
+  // Função para contar dias feitos na semana baseado no campo history (assumindo array de dias feitos)
+  // Se o backend não retornar, podemos calcular pelo array weeklyRecord ou deixar como 0
+  const diasFeitosNaSemana = habit => {
+    // Exemplo: habit.history = [1,3,4] dias da semana em que o hábito foi feito
+    // Ou pode ser uma contagem simples do que backend enviar
+    if (habit.history && Array.isArray(habit.history)) {
+      return habit.history.length;
+    }
+    return 0;
   };
 
-  const toggleDone = (id) => {
-    setDoneHabits((prevDone) =>
-      prevDone.includes(id)
-        ? prevDone.filter(did => did !== id)
-        : [...prevDone, id]
-    );
-  };
-
-  const filteredHabits = filterToday
-    ? habits.filter(habit => habit.days.includes(todayIndex))
-    : habits;
-
+  // Render Meus Hábitos (somente nome + dias)
   const renderHabits = () => {
     if (isLoading) return <HabitsMessage>Carregando hábitos...</HabitsMessage>;
-    if (filteredHabits.length === 0) {
-      return (
-        <HabitsMessage>
-          {filterToday ? "Você não tem hábitos para hoje." : "Você não tem nenhum hábito cadastrado ainda."}
-        </HabitsMessage>
-      );
-    }
-    // Dentro da função renderHabits()
-return (
-  <ul style={{ listStyle: "none", padding: 0, width: "100%", maxWidth: 600 }}>
-    {filteredHabits.map((habit) => (
-      <HabitItem key={habit.id} done={doneHabits.includes(habit.id)}>
-        <HabitInfo>
-          <strong>{habit.name}</strong> <br />
-          Dias: {habit.days.map(d => daysNames[d]).join(", ")} <br />
-          Sequência atual:{" "}
-          <span style={{ color: habit.currentSequence > 0 ? "#8FC549" : "#666666" }}>
-            {habit.currentSequence} {habit.currentSequence === 1 ? "dia" : "dias"}
-          </span><br />
-          Seu recorde:{" "}
-          <span style={{
-            color:
-              habit.currentSequence === habit.highestSequence && habit.currentSequence !== 0
-                ? "#8FC549"
-                : "#666666"
-          }}>
-            {habit.highestSequence} {habit.highestSequence === 1 ? "dia" : "dias"}
-          </span>
-        </HabitInfo>
-        <HabitButtons>
-          <ConfirmButton
-            onClick={() => toggleDone(habit.id)}
-            title={doneHabits.includes(habit.id) ? "Desmarcar feito" : "Marcar como feito"}
-          >
-            ✔
-          </ConfirmButton>
-          <DeleteButton
-            onClick={() => {
-              if (window.confirm(`Deseja realmente excluir o hábito "${habit.name}"?`)) {
-                deleteHabit(habit.id);
-              }
-            }}
-            title="Excluir hábito"
-          >
-            ✖
-          </DeleteButton>
-        </HabitButtons>
-      </HabitItem>
-    ))}
-  </ul>
-);
+    if (habits.length === 0) return <HabitsMessage>Você não tem nenhum hábito cadastrado ainda.</HabitsMessage>;
 
+    return (
+      <ul style={{ listStyle: "none", padding: 0, width: "100%", maxWidth: 600 }}>
+        {habits.map(habit => (
+          <HabitItem key={habit.id} done={doneHabits.includes(habit.id)}>
+            <HabitInfo>
+              <strong>{habit.name}</strong><br />
+              Dias: {habit.days.map(d => daysNames[d]).join(", ")}
+            </HabitInfo>
+          </HabitItem>
+        ))}
+      </ul>
+    );
   };
 
-  // Data formatada para o título, com a primeira letra maiúscula
-  const dataHoje = dayjs().format("dddd, DD/MM").replace(/^\w/, c => c.toUpperCase());
+  // Render Hoje (nome, dias feitos na semana, recorde, marcar feito, excluir)
+  const renderTodayHabits = () => {
+    if (loadingToday) return <HabitsMessage>Carregando hábitos de hoje...</HabitsMessage>;
+    if (todayHabits.length === 0) return <HabitsMessage>Você não tem hábitos para hoje.</HabitsMessage>;
+
+    return (
+      <ul style={{ listStyle: "none", padding: 0, width: "100%", maxWidth: 600 }}>
+        {todayHabits.map(habit => (
+          <HabitItem key={habit.id} done={habit.done}>
+            <HabitInfo>
+              <strong>{habit.name}</strong><br />
+              Feito nesta semana: {diasFeitosNaSemana(habit)} dia(s)<br />
+              Recorde semanal: {habit.weeklyRecord || 0} dia(s)
+            </HabitInfo>
+            <HabitButtons>
+              <ConfirmButton
+                onClick={() => toggleTodayHabit(habit)}
+                title={habit.done ? "Desmarcar feito" : "Marcar como feito"}
+              >
+                {habit.done ? "✔" : "✖"}
+              </ConfirmButton>
+              <DeleteButton
+                onClick={() => {
+                  if (window.confirm(`Deseja realmente excluir o hábito "${habit.name}"?`)) {
+                    deleteHabit(habit.id);
+                  }
+                }}
+                title="Excluir hábito"
+              >
+                🗑
+              </DeleteButton>
+            </HabitButtons>
+          </HabitItem>
+        ))}
+      </ul>
+    );
+  };
 
   return (
     <PageContainer>
       <Header>
         <Logo>TrackIt</Logo>
-        <ProfileIcon src="/path-to-spongebob-icon.png" alt="Perfil" />
+        {/* Você pode colocar aqui foto do usuário, se quiser */}
+        <ProfileIcon src="https://i.pravatar.cc/150?img=3" alt="Usuário" />
       </Header>
       <MainContent>
-        <h2 style={{ alignSelf: "flex-start", color: "#126BA5", fontSize: "1.5rem" }}>
-          {filterToday ? dataHoje : "Meus Hábitos"}
-        </h2>
-        <AddHabitButton onClick={() => setFormVisible(true)} disabled={isLoading}>+</AddHabitButton>
-        {formVisible && (
-          <form onSubmit={handleSubmit}>
-            <Input
-              type="text"
-              placeholder="Nome do hábito"
-              value={habitName}
-              onChange={(e) => setHabitName(e.target.value)}
-              disabled={isLoading}
-              required
-            />
-            <div>
-              {daysNames.map((day, index) => (
-                <DayButton
-                  key={index}
-                  onClick={() => toggleDay(index)}
+        <FilterButtons>
+          <FilterButton active={!filterToday} onClick={() => setFilterToday(false)}>
+            Meus Hábitos
+          </FilterButton>
+          <FilterButton active={filterToday} onClick={() => setFilterToday(true)}>
+            Hoje
+          </FilterButton>
+        </FilterButtons>
+
+        {filterToday ? renderTodayHabits() : renderHabits()}
+
+        {!filterToday && (
+          <>
+            {!formVisible && (
+              <AddHabitButton onClick={() => setFormVisible(true)}>+ Novo Hábito</AddHabitButton>
+            )}
+
+            {formVisible && (
+              <form onSubmit={createHabit} style={{ maxWidth: 600, width: "100%", marginTop: 20 }}>
+                <Input
+                  type="text"
+                  placeholder="Nome do hábito"
+                  value={habitName}
+                  onChange={e => setHabitName(e.target.value)}
                   disabled={isLoading}
-                  selected={selectedDays.includes(index)}
-                  type="button"
-                >
-                  {day}
-                </DayButton>
-              ))}
-            </div>
-            {error && <HabitsMessage style={{ color: "#d32f2f" }}>{error}</HabitsMessage>}
-            <ButtonPair>
-              <ButtonSave type="submit" disabled={isLoading}>Salvar</ButtonSave>
-              <ButtonCancel type="button" onClick={() => setFormVisible(false)} disabled={isLoading}>Cancelar</ButtonCancel>
-            </ButtonPair>
-          </form>
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 400 }}>
+                  {daysNames.map((day, index) => (
+                    <DayButton
+                      key={index}
+                      type="button"
+                      selected={selectedDays.includes(index)}
+                      onClick={() => handleDayClick(index)}
+                      disabled={isLoading}
+                    >
+                      {day}
+                    </DayButton>
+                  ))}
+                </div>
+                {error && <p style={{ color: "red" }}>{error}</p>}
+                <ButtonPair>
+                  <ButtonCancel type="button" onClick={() => setFormVisible(false)} disabled={isLoading}>
+                    Cancelar
+                  </ButtonCancel>
+                  <ButtonSave type="submit" disabled={isLoading}>
+                    Salvar
+                  </ButtonSave>
+                </ButtonPair>
+              </form>
+            )}
+          </>
         )}
-        {renderHabits()}
       </MainContent>
-      <NavigationBar>
-        <NavButton active={!filterToday} onClick={() => setFilterToday(false)}>Hábitos</NavButton>
-        <NavButton active={filterToday} onClick={() => setFilterToday(true)}>Hoje</NavButton>
-      </NavigationBar>
+
+      <Footer>TrackIt - Seus hábitos em dia!</Footer>
     </PageContainer>
   );
 }
