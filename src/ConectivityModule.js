@@ -16,25 +16,80 @@ const ENDPOINTS = {
 const UserContext = createContext([{}, () => {}])
 const HabitsContext = createContext([ [], () => {}])
 
-function resgisterNewUser(data){
 
-    const promisse = axios.post(ENDPOINSTS.register, data)
+function registerNewUser(data) {
+  
+    const promisse = axios.post(ENDPOINTS.register, data)
 
     return promisse;
 }
 
-function liginUser(data) {
+function loginUser(data) {
+
     const promisse = axios.post(ENDPOINTS.login, data)
     return promisse;
 }
 
-function getTodayHasbits(token) {
+
+function getTodayHabits(token) {
+    
     const config = {
         headers: {
             "Authorization": "Bearer " + token
         }
     }
-   const promisse = axios.get(ENDPOINSTS.todayHabits, config) :
-   return promise;
+
+    const promise = axios.get(ENDPOINTS.todayHabits, config);
+    return promise;
 }
 
+
+function postCreateHabit(token, data) {
+
+    const config = {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    }
+
+    const promise = axios.post(ENDPOINTS.createHabit, data, config);
+    return promise;
+}
+
+function getListHabits(token) {
+    const config = {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    }
+
+    const promise = axios.get(ENDPOINTS.listHabits, config);
+    return promise;
+}
+
+function deleteRemoveHabit(token, id) {
+    const config = {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    }
+
+    const promise = axios.delete(ENDPOINTS.removeHabit(id), config);
+    return promise;
+}
+
+function habitCheckerCheck(token, id, newState) {
+    const config = {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    }
+
+    let promise;
+    if(newState) promise = axios.post(ENDPOINTS.habitCheckerCheck(id), {}, config);
+    if(!newState) promise = axios.post(ENDPOINTS.habitCheckerUncheck(id),{},  config)
+    return promise;
+}
+
+
+export {registerNewUser, habitCheckerCheck,  deleteRemoveHabit, loginUser, getTodayHabits, getListHabits, postCreateHabit, UserContext, HabitsContext}
