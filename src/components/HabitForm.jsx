@@ -1,11 +1,12 @@
+/* eslint-disable react/prop-types */
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components"
 import LoaderButton from "./LoaderButton";
 import { UserContext, postCreateHabit } from "../ConectivityModule";
 import { toast } from "react-toastify";
-import { name } from "dayjs/locale/pt-br";
 
 export default function CreateHabit({onComplete , newState = undefined}) {
+
     const [habitName, setHabitName] = useState("");
     const [days, setDays] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -13,36 +14,36 @@ export default function CreateHabit({onComplete , newState = undefined}) {
     const [state, setState] = useState({});
 
     useEffect(() => {
-        if(newState.days != undefined)
+        if(newState.days != undefined) 
         {
-            setState(newSate);
+            setState(newState);
             setHabitName(newState.name);
             setDays(newState.days);
-        }   else {
+        } else {
             setDays([]);
             setHabitName("");
         }
-
+        
         return () => {
             setState({});
             setLoading(false);
             setDays([]);
             setHabitName("")
         }
-
     }, [newState])
-
+    
     useEffect(() => {
 
         setState({name: habitName, days: days});
     }, [habitName, days])
 
 
+
     function addWeekDay(day) {
         let newArr = [...days];
         const index = newArr.findIndex( (curr) => curr === day);
-        if(idex != -1) {
-            newArr.splice(index, 1)
+        if(index != -1) {
+           newArr.splice(index, 1)
         }
         else {
             newArr.push(day);
@@ -51,29 +52,29 @@ export default function CreateHabit({onComplete , newState = undefined}) {
 
     }
 
-    function canceButton() {
+    function cancelButton() {
         onComplete(state);
     }
 
     function createHabit(event) {
-        event.preventefault();
-
+        event.preventDefault();
+        
         if(days.length === 0 ) {
-            toast.error("Voce precisa selecionar pelo menos 1 sia a semana!");
+            toast.error("Voce precisa selecionar pelo menos 1 dia da semana!");
             return;
         }
-
+        
         setLoading(true);
         postCreateHabit(user.token, {name: habitName, days})
             .then(() => {
-                toast.success("Habito criador com sucesso!")
+                toast.success("Habito criado com sucesso!")
                 setLoading(false);
                 onComplete({});
             })
             .catch( error => {
                 alert("Desconectado, faca o login novamente.");
                 console.log(error)
-                toast.error("Problemas ao registrar o novo habito")
+                toast.error("Problemas ao registrar o novo habito" )
                 setLoading(false);
             })
     }
@@ -100,7 +101,6 @@ export default function CreateHabit({onComplete , newState = undefined}) {
             </form>
         </SCHabit>
     )
-
 }
 
 const SCHabit = styled.div`
