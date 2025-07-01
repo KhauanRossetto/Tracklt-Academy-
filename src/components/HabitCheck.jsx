@@ -10,7 +10,7 @@ export default function HabitCheck({data}) {
     const [todayHabits, setTodayHabits] = useContext(HabitsContext);
     const [currData, setCurrData] = useState(data);
 
-    function checkBurronClick () {
+    function checkButtonClick () {
         habitCheckerCheck(user.token, currData.id, !currData.done)
             .then(() => {changeHabitDone(currData.id, !currData.done)})
             .catch( e => console.log(e));

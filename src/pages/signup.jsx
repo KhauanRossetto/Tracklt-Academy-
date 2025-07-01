@@ -1,4 +1,4 @@
-import styled from "styled-components"
+import styled from "styled-components";
 import logo from "../assets/logo.svg";
 import { Link, useNavigate } from "react-router-dom";
 import LoaderButton from "../components/LoaderButton";
@@ -6,112 +6,163 @@ import { useState } from "react";
 import { registerNewUser } from "../ConectivityModule";
 import { toast } from "react-toastify";
 
-
 export default function Signup() {
+  const navigate = useNavigate();
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [name, setName] = useState("");
-    const [url, setURL] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    image: ""
+  });
 
-    const [loading, setLoding] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-    const navigator = useNavigator();
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  }
 
-    function FormSignUp(event) {
-        event.preventDefault();
+  function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
 
-        setLoading(true);
+    registerNewUser(formData)
+      .then(() => {
+        toast.success("Cadastro realizado com sucesso!");
+        navigate("/");
+      })
+      .catch(() => {
+        toast.error("Erro ao realizar cadastro. Tente novamente.");
+        alert("Faça o login novamente!");
+      })
+      .finally(() => setLoading(false));
+  }
 
-        registerNewUser({email, password, name, image: url})
-            .then(() => {
-                toast.success("Cadastro realizado com sucesso!")
-                setLoading(false)
-                navigator("/")
-            })
-            .catch(() => {
-                toast.error("O cadastro deu um erro.")
-                alert("Faca o login novamente!")
-                setLoading(false);
-            })
-    }
+  return (
+    <ScSignup>
+      <img src={logo} alt="Track-it Logo" />
 
-    return (
-       <ScSignup>
-            <img src={logo} alt="Track-it Logo" />
+      <form onSubmit={handleSubmit}>
+        <h1>Cadastrar:</h1>
 
-            <form onSubmit={FormSignUp}>
-                <h1>Cadastrar: </h1>
-                    <input data-test="email-input" disabled={loading} value={email} onChange={e => setEmail(e.target.value)} type="email" required placeholder="Email"/>
-                    <input data-test="password-input" disabled={loading} value={password} onChange={e => setPassword(e.target.value)} type="password" required placeholder="Senha"/>
-                    <input data-test="user-name-input" disabled={loading} value={name} onChange={e => setName(e.target.value)} type="text" id="name" required placeholder="Nome"/>
-                    <input data-test="user-image-input" disabled={loading} value={url} onChange={e => setURL(e.target.value)} type="url" id="url" required placeholder="URL de foto de perfil"/>
-                <LoaderButton testStr={"signup-btn"} loading={loading}>Cadastrar</LoaderButton>
-            </form>
-        
-            <Link data-test="login-link" to="/">Já tem uma conta? Faça login!</Link>
-       </ScSignup> 
-    )
+        <input
+          data-test="email-input"
+          disabled={loading}
+          name="email"
+          type="email"
+          required
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+        />
+
+        <input
+          data-test="password-input"
+          disabled={loading}
+          name="password"
+          type="password"
+          required
+          placeholder="Senha"
+          value={formData.password}
+          onChange={handleChange}
+        />
+
+        <input
+          data-test="user-name-input"
+          disabled={loading}
+          name="name"
+          type="text"
+          required
+          placeholder="Nome"
+          value={formData.name}
+          onChange={handleChange}
+        />
+
+        <input
+          data-test="user-image-input"
+          disabled={loading}
+          name="image"
+          type="url"
+          required
+          placeholder="URL de foto de perfil"
+          value={formData.image}
+          onChange={handleChange}
+        />
+
+        <LoaderButton data-test="signup-btn" loading={loading}>
+          Cadastrar
+        </LoaderButton>
+      </form>
+
+      <Link data-test="login-link" to="/">
+        Já tem uma conta? Faça login!
+      </Link>
+    </ScSignup>
+  );
 }
 
+
 const ScSignup = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  width: 100%;
+
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+
+  img {
+    width: 200px;
+  }
+
+  form {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    width: 80%;
+    max-width: 400px;
+    gap: 10px;
 
-    gap: 26px;
-    width: 100%;
-
-    position: fixed;
-    left: 0px;
-    top: 50%;
-    -webkit-transform: translateY(-50%);
-    transform: translateY(-50%); 
-
-
-    form {
-        display: flex;
-        flex-direction: column;
-        width: 80%;
-        max-width: 400px ;
-        gap: 10px;
-
-        input {
-            padding: 10px;
-            border-radius: 5px;
-            border: 2px solid #D4D4D4;
-            color: #52B6FF;
-        }
-
-        input::placeholder {
-            color: #d4d4d4;
-        }
-
-        input:focus {
-            outline: 2px solid #52B6FF;
-            border: 1px solid #52B6FF;
-        }
-        
-        button {
-            background-color: #52B6FF;
-            border: none;
-            border-radius: 5px;
-            padding: 10px;
-            color: #fff;
-        }
+    h1 {
+      font-size: 22px;
+      color: #333;
+      margin-bottom: 10px;
     }
 
-    img {
-        width: 200px;
+    input {
+      padding: 10px;
+      border-radius: 5px;
+      border: 2px solid #d4d4d4;
+      color: #52b6ff;
+      font-size: 16px;
     }
 
-    a {
-        color: #52B6FF;
-        font-size: 14px;
+    input::placeholder {
+      color: #d4d4d4;
     }
 
-`
+    input:focus {
+      outline: 2px solid #52b6ff;
+      border: 1px solid #52b6ff;
+    }
 
-    
+    button {
+      background-color: #52b6ff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px;
+      color: #fff;
+      font-size: 16px;
+    }
+  }
 
-
+  a {
+    color: #52b6ff;
+    font-size: 14px;
+    text-decoration: none;
+    margin-top: 10px;
+  }
+`;

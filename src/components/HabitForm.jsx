@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components"
 import LoaderButton from "./LoaderButton";
